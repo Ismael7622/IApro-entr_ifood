@@ -29,7 +29,6 @@ export default function CallInterface() {
 
   // Initialize Audio Objects
   useEffect(() => {
-    // UPDATED PATHS - Safe filenames
     ringtoneRef.current = new Audio("/sounds/iphone_ringtone.mp3");
     ringtoneRef.current.loop = true;
 
@@ -58,49 +57,6 @@ export default function CallInterface() {
       audio3Ref.current?.pause();
     };
   }, []);
-
-  // Watch Call Status changes
-  useEffect(() => {
-    if (callStatus === "active") {
-      setStatusText("Conexão Segura Estabelecida");
-      // Stop ringtone
-      if (ringtoneRef.current) {
-        ringtoneRef.current.pause();
-        ringtoneRef.current.currentTime = 0;
-      }
-
-      // Start Audio Sequence
-      const playSequence = async () => {
-        if (audio1Ref.current && audio2Ref.current) {
-          try {
-            // Ensure cleaner status
-            audio2Ref.current.currentTime = 0;
-
-            // Define handler
-            const handleAudio1End = () => {
-              setTimeout(() => {
-                audio2Ref.current?.play().catch(e => console.error("Audio 2 play failed:", e));
-              }, 1000); // 1.0s Delay
-            };
-
-            // Attach listener (ensure only one)
-            audio1Ref.current.removeEventListener('ended', handleAudio1End); // Safety
-            audio1Ref.current.addEventListener('ended', handleAudio1End, { once: true });
-
-            await audio1Ref.current.play();
-          } catch (e) {
-            console.error("Audio play failed:", e);
-          }
-        }
-      };
-      playSequence();
-    } else if (callStatus === "ended") {
-      ringtoneRef.current?.pause();
-      audio1Ref.current?.pause();
-      audio2Ref.current?.pause();
-    }
-  }, [callStatus]);
-
 
   // Timer logic for active call
   useEffect(() => {
@@ -178,14 +134,35 @@ export default function CallInterface() {
         router.push("/scanner");
       };
     } else {
-      // Fallback if audio missing
       router.push("/scanner");
     }
   };
 
   const handleAnswer = () => {
+    // 1. Update UI State
     setCallStatus("active");
-    // Warm up Audio 2 and Audio 3
+    setStatusText("Conexão Segura Estabelecida");
+
+    // 2. Stop Ringtone immediately
+    if (ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+
+    // 3. Play Audio 1 (Direct Response)
+    if (audio1Ref.current) {
+      audio1Ref.current.play().catch(e => console.error("Audio 1 failed:", e));
+
+      // Setup Sequence for Audio 2
+      const handleAudio1End = () => {
+        setTimeout(() => {
+          audio2Ref.current?.play().catch(e => console.error("Audio 2 failed:", e));
+        }, 1000);
+      };
+      audio1Ref.current.addEventListener('ended', handleAudio1End, { once: true });
+    }
+
+    // 4. Warm up others (Silent) to bypass future autoplay blocks
     const warmUp = (audio: HTMLAudioElement | null) => {
       if (audio) {
         audio.volume = 0;
@@ -203,27 +180,16 @@ export default function CallInterface() {
   const handleDecline = () => {
     setCallStatus("ended");
     setStatusText("Chamada Recusada");
+    if (ringtoneRef.current) ringtoneRef.current.pause();
   };
 
   const handleOverlayClick = () => {
+    // ONLY play ringtone. DO NOT warm up others here to avoid overlapping noise.
     if (ringtoneRef.current) {
       ringtoneRef.current.play().then(() => {
         setAudioAllowed(true);
       }).catch(console.error);
     }
-    // Also warm up others here just in case answer isn't enough or user clicks this late
-    const warmUp = (audio: HTMLAudioElement | null) => {
-      if (audio) {
-        audio.volume = 0;
-        audio.play().then(() => {
-          audio.pause();
-          audio.currentTime = 0;
-          audio.volume = 1;
-        }).catch(console.error);
-      }
-    };
-    warmUp(audio2Ref.current);
-    warmUp(audio3Ref.current);
   };
 
   const formatTime = (seconds: number) => {
