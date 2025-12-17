@@ -67,15 +67,24 @@ export default function CallInterface() {
 
       // Start Audio Sequence
       const playSequence = async () => {
-        if (audio1Ref.current) {
+        if (audio1Ref.current && audio2Ref.current) {
           try {
-            await audio1Ref.current.play();
-            audio1Ref.current.onended = () => {
-              // 1.5s Delay
+            // Ensure cleaner status
+            audio2Ref.current.currentTime = 0;
+
+            // Define handler
+            const handleAudio1End = () => {
               setTimeout(() => {
-                if (audio2Ref.current) audio2Ref.current.play();
-              }, 1500);
+                audio2Ref.current?.play().catch(e => console.error("Audio 2 play failed:", e));
+              }, 1000); // 1.0s Delay
             };
+
+            // Attach listener (ensure only one)
+            audio1Ref.current.onended = null; // Clear old property style if any
+            audio1Ref.current.removeEventListener('ended', handleAudio1End); // Safety
+            audio1Ref.current.addEventListener('ended', handleAudio1End, { once: true });
+
+            await audio1Ref.current.play();
           } catch (e) {
             console.error("Audio play failed:", e);
           }
