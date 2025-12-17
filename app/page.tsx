@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Phone, PhoneOff, ShieldAlert, Fingerprint } from "lucide-react";
+import { Phone, PhoneOff, ShieldAlert, Fingerprint, Play } from "lucide-react";
 
 export default function CallInterface() {
   const router = useRouter();
@@ -13,6 +13,7 @@ export default function CallInterface() {
   const [timer, setTimer] = useState(0);
   const [showFingerprint, setShowFingerprint] = useState(false);
   const [statusText, setStatusText] = useState("Ligação segura recebida");
+  const [audioAllowed, setAudioAllowed] = useState(false);
 
   // Hold interaction state
   const [isHolding, setIsHolding] = useState(false);
@@ -26,23 +27,33 @@ export default function CallInterface() {
 
   // Initialize Audio Objects
   useEffect(() => {
-    ringtoneRef.current = new Audio("/sounds/ringtone.mp3");
+    // UPDATED PATHS - Safe filenames
+    ringtoneRef.current = new Audio("/sounds/iphone_ringtone.mp3");
     ringtoneRef.current.loop = true;
 
-    audio1Ref.current = new Audio("/sounds/mirna audio 1.mp3");
-    audio2Ref.current = new Audio("/sounds/mirna audio 2.mp3");
+    audio1Ref.current = new Audio("/sounds/mirna_audio_1.mp3");
+    audio2Ref.current = new Audio("/sounds/mirna_audio_2.mp3");
 
-    // Only play ringtone initially
-    if (callStatus === "incoming") {
-      ringtoneRef.current.play().catch(e => console.log("Auto-play ringtone blocked:", e));
-    }
+    const attemptAutoplay = async () => {
+      try {
+        if (callStatus === "incoming" && ringtoneRef.current) {
+          await ringtoneRef.current.play();
+          setAudioAllowed(true);
+        }
+      } catch (e) {
+        console.log("Autoplay blocked, waiting for interaction:", e);
+        setAudioAllowed(false);
+      }
+    };
+
+    attemptAutoplay();
 
     return () => {
       ringtoneRef.current?.pause();
       audio1Ref.current?.pause();
       audio2Ref.current?.pause();
     };
-  }, []); // Run once on mount
+  }, []);
 
   // Watch Call Status changes
   useEffect(() => {
@@ -148,6 +159,14 @@ export default function CallInterface() {
     setStatusText("Chamada Recusada");
   };
 
+  const handleOverlayClick = () => {
+    if (ringtoneRef.current) {
+      ringtoneRef.current.play().then(() => {
+        setAudioAllowed(true);
+      }).catch(console.error);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -157,6 +176,18 @@ export default function CallInterface() {
   return (
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-4 overflow-hidden select-none">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-800/50 via-neutral-950 to-neutral-950 pointer-events-none" />
+
+      {/* Audio Interaction Overlay - Only shows if autoplay was blocked */}
+      {!audioAllowed && callStatus === "incoming" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer" onClick={handleOverlayClick}>
+          <div className="flex flex-col items-center gap-4 animate-bounce">
+            <div className="h-16 w-16 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Play className="h-8 w-8 text-white fill-current ml-1" />
+            </div>
+            <span className="text-white font-medium tracking-wide">Toque para Iniciar</span>
+          </div>
+        </div>
+      )}
 
       <Card className="relative z-10 w-full max-w-md bg-transparent border-none shadow-none flex flex-col items-center gap-8">
         {/* Avatar / Shield Area */}
@@ -196,35 +227,6 @@ export default function CallInterface() {
             <span className="text-red-500 font-bold">Encerrado</span>
           )}
         </div>
-
-        {/* Incoming Call Buttons */}
-        {callStatus === "incoming" && (
-          <div className="flex w-full items-center justify-between px-8 mt-8">
-            <div className="flex flex-col items-center gap-2">
-              <Button
-                variant="destructive"
-                size="icon"
-                className="h-20 w-20 rounded-full bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20"
-                onClick={handleDecline}
-              >
-                <PhoneOff className="h-8 w-8 text-white" />
-              </Button>
-              <span className="text-xs text-white/50">Recusar</span>
-            </div>
-
-            <div className="flex flex-col items-center gap-2">
-              <Button
-                variant="default"
-                size="icon"
-                className="h-20 w-20 rounded-full bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 animate-bounce"
-                onClick={handleAnswer}
-              >
-                <Phone className="h-8 w-8 text-white" />
-              </Button>
-              <span className="text-xs text-white/50">Atender</span>
-            </div>
-          </div>
-        )}
 
         {/* Fingerprint Hold Button (Appears below timer) */}
         {showFingerprint && callStatus === "active" && (
@@ -267,6 +269,35 @@ export default function CallInterface() {
             <span className="text-xs text-emerald-500/80 font-mono tracking-wider animate-pulse">
               SEGURE PARA DESBLOQUEAR
             </span>
+          </div>
+        )}
+
+        {/* Incoming Call Buttons */}
+        {callStatus === "incoming" && (
+          <div className="flex w-full items-center justify-between px-8 mt-8">
+            <div className="flex flex-col items-center gap-2">
+              <Button
+                variant="destructive"
+                size="icon"
+                className="h-20 w-20 rounded-full bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20"
+                onClick={handleDecline}
+              >
+                <PhoneOff className="h-8 w-8 text-white" />
+              </Button>
+              <span className="text-xs text-white/50">Recusar</span>
+            </div>
+
+            <div className="flex flex-col items-center gap-2">
+              <Button
+                variant="default"
+                size="icon"
+                className="h-20 w-20 rounded-full bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 animate-bounce"
+                onClick={handleAnswer}
+              >
+                <Phone className="h-8 w-8 text-white" />
+              </Button>
+              <span className="text-xs text-white/50">Atender</span>
+            </div>
           </div>
         )}
       </Card>
