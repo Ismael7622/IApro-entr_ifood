@@ -186,47 +186,48 @@ export default function QuizPage() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-[#0b141a] text-gray-100 overflow-hidden">
+        <div className="flex flex-col h-screen bg-[#efeae2] text-[#111b21] overflow-hidden font-sans">
             {/* Header */}
-            <div className="bg-[#202c33] px-4 py-3 flex items-center gap-4 shadow-sm z-10">
+            <div className="bg-[#008069] px-4 py-3 flex items-center gap-4 shadow-sm z-10 text-white">
                 <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-emerald-500"><ShieldAlert className="text-white h-6 w-6" /></AvatarFallback>
+                    <AvatarImage src="/iapro_logo.png" className="object-cover" />
+                    <AvatarFallback className="bg-white"><ShieldAlert className="text-[#008069] h-6 w-6" /></AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                    <h1 className="font-semibold text-white">Sistema IA — Verificação</h1>
-                    <p className="text-xs text-emerald-400">online</p>
+                    <h1 className="font-semibold text-white text-lg">IA PRO - Verificação</h1>
+                    <p className="text-xs text-white/80">online</p>
                 </div>
-                <div className="flex gap-4 text-gray-400">
-                    <Video className="h-5 w-5" />
+                <div className="flex gap-5 text-white">
+                    <Video className="h-6 w-6" />
                     <Phone className="h-5 w-5" />
                     <MoreVertical className="h-5 w-5" />
                 </div>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[url('https://camo.githubusercontent.com/850e932918848d2870c91834168019e0b8e2333b2a2103f6f393845c4779836f/68747470733a2f2f7765622e77686174736170702e636f6d2f696d672f62672d636861742d74696c652d6461726b5f61346265353132653731393562366237333364393131306234303866303735642e706e67')] bg-repeat bg-fixed">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#efeae2] bg-[url('/whatsapp_bg.png')] bg-repeat bg-fixed bg-[length:400px_auto]">
                 {/* Encryption notice */}
                 <div className="flex justify-center my-4">
-                    <span className="bg-[#1f2c33] text-[#8696a0] text-xs px-3 py-1 rounded-lg text-center shadow-sm">
+                    <span className="bg-[#ffeecd] text-[#54656f] text-[10px] px-3 py-1.5 rounded-lg text-center shadow-sm">
                         As mensagens são protegidas com criptografia de ponta-a-ponta.
                     </span>
                 </div>
 
                 {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[80%] rounded-lg px-3 py-1.5 shadow-sm text-sm ${msg.sender === "user" ? "bg-[#005c4b] text-white rounded-tr-none" : "bg-[#202c33] text-white rounded-tl-none"}`}>
-                            <p className="break-words">{msg.text}</p>
-                            <span className="text-[10px] text-gray-400 float-right ml-2 mt-1 block">{msg.time}</span>
+                        <div className={`max-w-[80%] rounded-lg px-2 py-1 shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] text-[14.2px] leading-[19px] relative ${msg.sender === "user" ? "bg-[#d9fdd3] text-[#111b21] rounded-tr-none" : "bg-white text-[#111b21] rounded-tl-none"}`}>
+                            <p className="break-words pr-2">{msg.text}</p>
+                            <span className="text-[11px] text-[#667781] float-right ml-2 mt-1 relative top-[3px]">{msg.time}</span>
                         </div>
                     </div>
                 ))}
 
                 {isTyping && (
                     <div className="flex justify-start animate-in fade-in slide-in-from-bottom-2">
-                        <div className="bg-[#202c33] p-3 rounded-lg rounded-tl-none shadow-sm flex gap-1">
-                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></span>
+                        <div className="bg-white p-2.5 rounded-lg rounded-tl-none shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] flex gap-1 items-center h-[34px]">
+                            <span className="w-1.5 h-1.5 bg-[#667781] rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                            <span className="w-1.5 h-1.5 bg-[#667781] rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                            <span className="w-1.5 h-1.5 bg-[#667781] rounded-full animate-bounce"></span>
                         </div>
                     </div>
                 )}
@@ -234,22 +235,27 @@ export default function QuizPage() {
             </div>
 
             {/* Input / Options Area */}
-            <div className="bg-[#202c33] p-4 min-h-[60px] flex items-center justify-center">
+            <div className="bg-[#f0f2f5] p-2 min-h-[62px] flex items-center justify-center">
                 {showOptions ? (
-                    <div className="grid grid-cols-1 w-full gap-2">
+                    <div className="grid grid-cols-1 w-full gap-2 px-2">
                         {showOptions.map((opt) => (
                             <Button
                                 key={opt}
                                 onClick={() => handleOptionClickRobust(opt)}
-                                className="bg-[#2a3942] hover:bg-[#374248] text-emerald-400 border border-[#374248] w-full justify-start text-left h-auto py-3"
+                                className="bg-white hover:bg-[#f5f6f6] text-[#008069] font-medium border-none shadow-sm w-full justify-center text-center h-auto py-3.5 text-[15px] rounded-xl"
                             >
                                 {opt}
                             </Button>
                         ))}
                     </div>
                 ) : (
-                    <div className="text-gray-500 text-sm italic">
-                        {isTyping ? "IA está digitando..." : "Aguardando resposta..."}
+                    <div className="flex-1 bg-white rounded-lg h-10 px-4 flex items-center text-[#54656f] text-[15px]">
+                        {isTyping ? "Digitando..." : "Aguardando resposta..."}
+                    </div>
+                )}
+                {!showOptions && (
+                    <div className="ml-2 w-10 h-10 bg-[#008069] rounded-full flex items-center justify-center">
+                        <Send className="text-white h-5 w-5 ml-1" />
                     </div>
                 )}
             </div>
