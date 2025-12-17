@@ -186,7 +186,7 @@ export default function QuizPage() {
     };
 
     return (
-        <div className="flex flex-col h-screen bg-[#efeae2] text-[#111b21] overflow-hidden font-sans">
+        <div className="flex flex-col h-[100dvh] bg-[#efeae2] text-[#111b21] overflow-hidden font-sans">
             {/* Header */}
             <div className="bg-[#008069] px-4 py-3 flex items-center gap-4 shadow-sm z-10 text-white">
                 <Avatar className="h-10 w-10">

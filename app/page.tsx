@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Phone, PhoneOff, ShieldAlert, Fingerprint, Play, LockOpen, CheckCircle2, ChevronRight, User, Car } from "lucide-react";
+import { Phone, PhoneOff, ShieldAlert, Fingerprint, Play, LockOpen, CheckCircle2, ChevronRight, User, Bike } from "lucide-react";
 
 export default function CallInterface() {
   const router = useRouter();
@@ -230,7 +230,7 @@ export default function CallInterface() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-4 overflow-hidden select-none">
+    <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-4 overflow-x-hidden select-none">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-800/50 via-neutral-950 to-neutral-950 pointer-events-none" />
 
       {!audioAllowed && callStatus === "incoming" && (
@@ -376,11 +376,11 @@ export default function CallInterface() {
           {formStep === 'vehicle' && (
             <div className="w-full flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
               <div className="flex items-center gap-2 text-emerald-400 mb-2">
-                <Car className="h-5 w-5" />
+                <Bike className="h-5 w-5" />
                 <span className="font-medium">Dados do Veículo</span>
               </div>
               <Input
-                placeholder="Modelo (ex: Civic)"
+                placeholder="Modelo (ex: Yamaha)"
                 className="bg-neutral-900 border-neutral-700 text-white"
                 value={formData.carModel}
                 onChange={(e) => setFormData({ ...formData, carModel: e.target.value })}
