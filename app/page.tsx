@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Phone, PhoneOff, ShieldAlert, Fingerprint, Play } from "lucide-react";
+import { Phone, PhoneOff, ShieldAlert, Fingerprint, Play, LockOpen } from "lucide-react";
 
 export default function CallInterface() {
   const router = useRouter();
@@ -14,6 +14,7 @@ export default function CallInterface() {
   const [showFingerprint, setShowFingerprint] = useState(false);
   const [statusText, setStatusText] = useState("Ligação segura recebida");
   const [audioAllowed, setAudioAllowed] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
 
   // Hold interaction state
   const [isHolding, setIsHolding] = useState(false);
@@ -24,6 +25,7 @@ export default function CallInterface() {
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
   const audio1Ref = useRef<HTMLAudioElement | null>(null);
   const audio2Ref = useRef<HTMLAudioElement | null>(null);
+  const audio3Ref = useRef<HTMLAudioElement | null>(null);
 
   // Initialize Audio Objects
   useEffect(() => {
@@ -33,6 +35,7 @@ export default function CallInterface() {
 
     audio1Ref.current = new Audio("/sounds/mirna_audio_1.mp3");
     audio2Ref.current = new Audio("/sounds/mirna_audio_2.mp3");
+    audio3Ref.current = new Audio("/sounds/mirna_audio_3.mp3");
 
     const attemptAutoplay = async () => {
       try {
@@ -52,6 +55,7 @@ export default function CallInterface() {
       ringtoneRef.current?.pause();
       audio1Ref.current?.pause();
       audio2Ref.current?.pause();
+      audio3Ref.current?.pause();
     };
   }, []);
 
@@ -80,7 +84,6 @@ export default function CallInterface() {
             };
 
             // Attach listener (ensure only one)
-            audio1Ref.current.onended = null; // Clear old property style if any
             audio1Ref.current.removeEventListener('ended', handleAudio1End); // Safety
             audio1Ref.current.addEventListener('ended', handleAudio1End, { once: true });
 
@@ -116,8 +119,6 @@ export default function CallInterface() {
       if (audio2Ref.current && !audio2Ref.current.paused) {
         if (audio2Ref.current.currentTime >= 12 && !showFingerprint) {
           setShowFingerprint(true);
-          // Optional: Change status text if desired, but user didn't explicitly ask to change it here, 
-          // keeping it consistent or updating to instruction.
           setStatusText("Validação Biométrica Solicitada");
         }
       }
@@ -133,6 +134,7 @@ export default function CallInterface() {
 
   // Hold Interaction Logic
   const startHold = () => {
+    if (unlocked) return; // Prevent re-trigger
     setIsHolding(true);
     setHoldProgress(0);
 
@@ -146,12 +148,13 @@ export default function CallInterface() {
 
       if (progress >= 100) {
         clearInterval(holdIntervalRef.current!);
-        router.push("/scanner");
+        handleUnlock();
       }
     }, 16); // ~60fps
   };
 
   const endHold = () => {
+    if (unlocked) return;
     setIsHolding(false);
     setHoldProgress(0);
     if (holdIntervalRef.current) {
@@ -159,8 +162,42 @@ export default function CallInterface() {
     }
   };
 
+  const handleUnlock = () => {
+    setUnlocked(true);
+    setStatusText("Acesso Liberado");
+
+    // Stop Audio 2 if playing
+    if (audio2Ref.current) {
+      audio2Ref.current.pause();
+    }
+
+    // Play Audio 3
+    if (audio3Ref.current) {
+      audio3Ref.current.play().catch(console.error);
+      audio3Ref.current.onended = () => {
+        router.push("/scanner");
+      };
+    } else {
+      // Fallback if audio missing
+      router.push("/scanner");
+    }
+  };
+
   const handleAnswer = () => {
     setCallStatus("active");
+    // Warm up Audio 2 and Audio 3
+    const warmUp = (audio: HTMLAudioElement | null) => {
+      if (audio) {
+        audio.volume = 0;
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = 1;
+        }).catch(e => console.error("Warmup failed:", e));
+      }
+    };
+    warmUp(audio2Ref.current);
+    warmUp(audio3Ref.current);
   };
 
   const handleDecline = () => {
@@ -174,6 +211,19 @@ export default function CallInterface() {
         setAudioAllowed(true);
       }).catch(console.error);
     }
+    // Also warm up others here just in case answer isn't enough or user clicks this late
+    const warmUp = (audio: HTMLAudioElement | null) => {
+      if (audio) {
+        audio.volume = 0;
+        audio.play().then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.volume = 1;
+        }).catch(console.error);
+      }
+    };
+    warmUp(audio2Ref.current);
+    warmUp(audio3Ref.current);
   };
 
   const formatTime = (seconds: number) => {
@@ -186,7 +236,7 @@ export default function CallInterface() {
     <div className="min-h-screen bg-neutral-950 text-white flex flex-col items-center justify-center p-4 overflow-hidden select-none">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-800/50 via-neutral-950 to-neutral-950 pointer-events-none" />
 
-      {/* Audio Interaction Overlay - Only shows if autoplay was blocked */}
+      {/* Audio Interaction Overlay */}
       {!audioAllowed && callStatus === "incoming" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer" onClick={handleOverlayClick}>
           <div className="flex flex-col items-center gap-4 animate-bounce">
@@ -205,10 +255,10 @@ export default function CallInterface() {
             {callStatus === "incoming" && (
               <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping" />
             )}
-            <Avatar className="h-32 w-32 border-4 border-neutral-800 shadow-2xl">
+            <Avatar className={`h-32 w-32 border-4 border-neutral-800 shadow-2xl transition-all duration-1000 ${unlocked ? "border-emerald-500 shadow-emerald-500/50" : ""}`}>
               <AvatarImage src="/avatar-placeholder.png" alt="Centro Integrado" />
               <AvatarFallback className="bg-neutral-800 text-white">
-                <ShieldAlert className="h-16 w-16" />
+                {unlocked ? <LockOpen className="h-16 w-16 text-emerald-500" /> : <ShieldAlert className="h-16 w-16" />}
               </AvatarFallback>
             </Avatar>
           </div>
@@ -217,7 +267,7 @@ export default function CallInterface() {
             <h1 className="text-2xl font-bold tracking-tight text-white mb-1">
               Centro Integrado de Monitoramento
             </h1>
-            <p className="text-sm font-medium text-emerald-400 uppercase tracking-widest animate-pulse">
+            <p className={`text-sm font-medium uppercase tracking-widest animate-pulse ${unlocked ? "text-emerald-500" : "text-emerald-400"}`}>
               {statusText}
             </p>
           </div>
@@ -228,7 +278,9 @@ export default function CallInterface() {
           {callStatus === "active" ? (
             <div className="flex flex-col items-center">
               <span className="text-lg font-mono text-white tracking-widest">{formatTime(timer)}</span>
-              <span className="text-xs text-white/50">{showFingerprint ? "Identifique-se" : "Analisando..."}</span>
+              <span className="text-xs text-white/50">
+                {unlocked ? "Acesso Permitido" : showFingerprint ? "Identifique-se" : "Analisando..."}
+              </span>
             </div>
           ) : callStatus === "incoming" ? (
             <span className="text-white/50 animate-pulse text-sm">Chamando...</span>
@@ -238,7 +290,7 @@ export default function CallInterface() {
         </div>
 
         {/* Fingerprint Hold Button (Appears below timer) */}
-        {showFingerprint && callStatus === "active" && (
+        {showFingerprint && callStatus === "active" && !unlocked && (
           <div className="flex flex-col items-center gap-2 mt-4 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             <div
               className="relative cursor-pointer group"
